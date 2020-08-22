@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Zucke/SocialNetwork/internal/handlers"
-	"github.com/Zucke/SocialNetwork/pkg/authentication"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
@@ -32,7 +31,7 @@ func (serv *Server) getRoutes() http.Handler {
 	r.Post("/login", handlers.LoginUser)
 	r.Post("/register", handlers.RegisterSocialUser)
 	LogGroup := r.Group(nil)
-	LogGroup.Use(authentication.ValidateMiddleware)
+	LogGroup.Use(ValidateMiddleware)
 
 	LogGroup.Get("/my-friend", handlers.GetUserFriends)
 	LogGroup.Get("/blocklist", handlers.GetUserBlockedUser)

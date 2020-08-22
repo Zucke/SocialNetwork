@@ -3,26 +3,14 @@ package data
 import (
 	"context"
 
+	"github.com/Zucke/SocialNetwork/pkg/comments"
+	"github.com/Zucke/SocialNetwork/pkg/errorstatus"
+	"github.com/Zucke/SocialNetwork/pkg/likes"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-//Comment has the information of a comment
-type Comment struct {
-	ComendID      primitive.ObjectID `json:"comment_id,omitempty" bson:"comment_id,omitempty"`
-	UserID        primitive.ObjectID `json:"user_id" bson:"user_id,omitempty"`
-	PublicationID primitive.ObjectID `json:"publication_id" bson:"publication_id"`
-	Likes         []Like             `json:"likes,omitempty" bson:"likes"`
-	Content       string             `json:"content" bson:"content"`
-}
-
-//IsValidFields validate the field of this data
-func (c *Comment) IsValidFields() bool {
-	return c.Content != ""
-
-}
-
 //NewPublicationComment add a comment to a publication
-func (up *UserPublications) NewPublicationComment(ctx context.Context, comment *Comment) error {
+func (up *UserPublications) NewPublicationComment(ctx context.Context, comment *comments.Comment) error {
 	publication, err := up.FindPublicationByID(ctx, comment.PublicationID)
 	if err != nil {
 		return err
@@ -34,7 +22,7 @@ func (up *UserPublications) NewPublicationComment(ctx context.Context, comment *
 }
 
 //ChangeAPublicationComment a comment from a user made to a publication
-func (up *UserPublications) ChangeAPublicationComment(ctx context.Context, newComment *Comment) error {
+func (up *UserPublications) ChangeAPublicationComment(ctx context.Context, newComment *comments.Comment) error {
 	publication, err := up.FindPublicationByID(ctx, newComment.PublicationID)
 	if err != nil {
 		return err
@@ -42,7 +30,7 @@ func (up *UserPublications) ChangeAPublicationComment(ctx context.Context, newCo
 	for i, comment := range publication.Comments {
 		if comment.ComendID.Hex() == newComment.ComendID.Hex() {
 			if comment.UserID.Hex() != ctx.Value(primitive.ObjectID{}).(primitive.ObjectID).Hex() {
-				return ErrorAccesDenied
+				return errorstatus.ErrorAccesDenied
 			}
 			newComment.ComendID = comment.ComendID
 			newComment.UserID = comment.UserID
@@ -51,12 +39,12 @@ func (up *UserPublications) ChangeAPublicationComment(ctx context.Context, newCo
 
 		}
 	}
-	return ErrorNotFount
+	return errorstatus.ErrorNotFount
 
 }
 
 //DeletePublicationComment delete a comment from a user made to a publication
-func (up *UserPublications) DeletePublicationComment(ctx context.Context, commentToDelete *Comment) error {
+func (up *UserPublications) DeletePublicationComment(ctx context.Context, commentToDelete *comments.Comment) error {
 	publication, err := up.FindPublicationByID(ctx, commentToDelete.PublicationID)
 	if err != nil {
 		return err
@@ -64,19 +52,19 @@ func (up *UserPublications) DeletePublicationComment(ctx context.Context, commen
 	for i, comment := range publication.Comments {
 		if comment.ComendID == commentToDelete.ComendID {
 			if comment.UserID.Hex() != ctx.Value(primitive.ObjectID{}).(primitive.ObjectID).Hex() {
-				return ErrorAccesDenied
+				return errorstatus.ErrorAccesDenied
 			}
 			publication.Comments = append(publication.Comments[:i], publication.Comments[i+1:]...)
 			return up.UpdatePublication(ctx, &publication)
 
 		}
 	}
-	return ErrorNotFount
+	return errorstatus.ErrorNotFount
 
 }
 
 //CommentLiked like a publication
-func (up *UserPublications) CommentLiked(ctx context.Context, commentLiked Comment) (*Comment, error) {
+func (up *UserPublications) CommentLiked(ctx context.Context, commentLiked comments.Comment) (*comments.Comment, error) {
 	publication, err := up.FindPublicationByID(ctx, commentLiked.PublicationID)
 	if err != nil {
 		return &commentLiked, err
@@ -84,12 +72,12 @@ func (up *UserPublications) CommentLiked(ctx context.Context, commentLiked Comme
 
 	for i, comment := range publication.Comments {
 		if comment.ComendID == commentLiked.ComendID {
-			l := Like{}
+			l := likes.Like{}
 			comment.Likes = *l.AppendLike(ctx, comment.Likes)
 			publication.Comments[i] = comment
 			return &comment, up.UpdatePublication(ctx, &publication)
 		}
 	}
-	return &commentLiked, ErrorNotFount
+	return &commentLiked, errorstatus.ErrorNotFount
 
 }
